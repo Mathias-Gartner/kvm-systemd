@@ -7,7 +7,7 @@ Wants=network.target dnsmasq.service
 Type=forking
 EnvironmentFile=/etc/kvm/%I.conf
 PIDFile=/run/kvm/%I.pid
-TimeoutStopSec=10
+TimeoutStopSec=60
 
 ExecStart=/usr/bin/qemu-system-x86_64 \
     -machine accel=kvm --enable-kvm \
@@ -15,17 +15,17 @@ ExecStart=/usr/bin/qemu-system-x86_64 \
     -display ${DISPLAY} \
     -pidfile /run/kvm/%I.pid \
     -monitor unix:/run/kvm/%I.monitor,server,nowait \
-    -serial telnet:${SERIAL},server,nowait \
     -runas nobody \
     -name %I \
-    -drive file=${DISKIMAGE},if=virtio,index=0,cache=none \
+    -drive file=/VMs/%I-disk.img,if=virtio,index=0,format=raw \
     -net nic,model=virtio,macaddr=${MACADDR} \
-    -net tap,ifname=${TAP},script=no \
+    -net bridge,br=br0 \
     -m ${MEMORY} \
+    -mem-path /dev/hugepages \
     -smp ${SMP} \
     $EXTRA_ARGS
 
-ExecStop=/bin/bash -c "echo system_powerdown | nc6 -U /run/kvm/%I.monitor -q 10 &> /dev/null"
+ExecStop=/bin/bash -c "echo system_powerdown | nc -U /run/kvm/%I.monitor -q 10 &> /dev/null"
 
 [Install]
 WantedBy=multi-user.target
